@@ -87,6 +87,7 @@
                 nativeBuildInputs = nativeBuildInputs ++ [millPackage pkgs.cacert];
                 
                 buildPhase = ''
+                  runHook preBuild
                   export HOME=$NIX_BUILD_TOP/home
                   # Force Java to use our tmpdir instead of /var/empty on macOS
                   export _JAVA_OPTIONS="-Duser.home=$HOME"
@@ -103,7 +104,7 @@
 
                   export XDG_CACHE_HOME=$HOME/mill
                   ${fetchCommand}
-                  
+                  runHook postBuild
                 '';
 
                 installPhase = ''
@@ -133,6 +134,7 @@
                 nativeBuildInputs = nativeBuildInputs ++ [millPackage];
           
                 buildPhase = ''
+                  runHook preBuild
                   export HOME=$NIX_BUILD_TOP/home
                   mkdir -p $HOME
                   export _JAVA_OPTIONS="-Duser.home=$HOME"
@@ -158,9 +160,10 @@
               
                   # Force offline mode so Coursier doesn't attempt network calls
                   export COURSIER_MODE=offline
-                  # new line at the end of this block is intentional to make passed buildPhase start with new line guaranteed
 
-                '' + buildPhase;
+                  ${buildPhase}
+                  runHook postBuild
+                '';
            };
       in
       {
