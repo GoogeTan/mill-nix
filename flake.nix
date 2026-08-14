@@ -72,9 +72,8 @@
             nativeBuildInputs ? [],
             hash ? pkgs.lib.fakeHash,
             # Run the assembly to force Coursier and Mill to download all dependencies,
-            # compiler bridges (like Zinc), and plugins. We ignore build failures here
-            # because we only care about populating the cache.
-            fetchCommand ? "mill --no-server assembly",
+            # compiler bridges (like Zinc), and plugins. 
+            fetchCommand ? "mill --no-server __.prepareOffline",
             buildPhase ? ''mill --no-server assembly'',
             installPhase ? ''
                 mkdir -p $out/bin
@@ -145,9 +144,7 @@
 
                   # Force Mill to use JAVA_HOME instead of downloading its own JVM
                   echo "system" > .mill-jvm-version
-
-                  ls -la ${deps}
-                  
+                
                   # Copy the pre-downloaded dependencies into our writable cache
                   cp -a ${deps}/coursier/. $COURSIER_CACHE/
                   chmod -R u+w $COURSIER_CACHE
