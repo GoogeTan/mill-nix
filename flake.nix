@@ -56,12 +56,12 @@
             };
           };
 
-        mkMillFromFile = filePath: hash:
+        mkMillFromFile = { filePath, hash, jdk ? pkgs.jdk21  }:
           let
             raw = builtins.readFile filePath;
             version = pkgs.lib.strings.trim raw;
           in
-            mkMill { inherit version hash; };
+            mkMill { inherit version hash jdk; };
 
         buildMillProject = {
             pname,
@@ -88,21 +88,21 @@
                 nativeBuildInputs = nativeBuildInputs ++ [millPackage pkgs.cacert];
                 
                 buildPhase = ''
-                  export HOME=$TMPDIR
+                  export HOME=$NIX_BUILD_TOP/home
                   # Force Java to use our tmpdir instead of /var/empty on macOS
-                  export _JAVA_OPTIONS="-Duser.home=$TMPDIR"
+                  export _JAVA_OPTIONS="-Duser.home=$HOME"
 
                   
                   # Force Mill to use JAVA_HOME instead of downloading its own JVM
                   echo "system" > .mill-jvm-version
 
-                  export COURSIER_CACHE=$TMPDIR/coursier
+                  export COURSIER_CACHE=$HOME/coursier
                   export COURSIER_ARCHIVE_CACHE=$COURSIER_CACHE/arc
                   export COURSIER_JVM_CACHE=$COURSIER_CACHE/jvm
                   export COURSIER_CONFIG_DIR=$COURSIER_CACHE/config
                   export COURSIER_DATA_DIR=$COURSIER_CACHE/data
 
-                  export XDG_CACHE_HOME=$TMPDIR/mill
+                  export XDG_CACHE_HOME=$HOME/mill
                   ${fetchCommand}
                   
                 '';
@@ -122,6 +122,8 @@
                   find $out \( -name maven-metadata.xml \) -delete
                   find $out -name "*.log" -delete
                   find $out -type f -name "*.lock" -delete
+                  find $out -name "*.lastUpdated" -delete
+                  find $out -name "_remote.repositories" -delete
                 '';
                     
                 outputHashMode = "recursive";
@@ -132,7 +134,7 @@
                 nativeBuildInputs = nativeBuildInputs ++ [millPackage];
           
                 buildPhase = ''
-                  export HOME=$(mktemp -d)
+                  export HOME=$NIX_BUILD_TOP/home
                   export _JAVA_OPTIONS="-Duser.home=$HOME"
               
                   # Create a writable directory for Coursier. Even in offline mode,
@@ -153,6 +155,8 @@
                   # it has to be writable due to read/write locks.
                   chmod -R u+w $XDG_CACHE_HOME
                   cp -a ${deps}/.ivy2 $HOME/.ivy2/
+                  # it has to be writable due to read/write locks.
+                  chmod -R u+w $HOME/.ivy2
               
                   # Force offline mode so Coursier doesn't attempt network calls
                   export COURSIER_MODE=offline
