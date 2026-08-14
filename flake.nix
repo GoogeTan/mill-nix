@@ -1,0 +1,175 @@
+{
+  description = "Reusable pure Nix flake for Mill 1.x (native builds)";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+
+        # Platform-specific suffix for Mill 1.x native builds
+        nativeSuffix = 
+          if system == "aarch64-darwin" then "-native-mac-aarch64"
+          else if system == "x86_64-darwin" then "-native-mac-amd64"
+          else if system == "aarch64-linux" then "-native-linux-aarch64"
+          else if system == "x86_64-linux" then "-native-linux-amd64"
+          else throw "Unsupported system: ${system}";
+
+        mkMill = { version, hash, jdk ? pkgs.jdk21 }:
+          pkgs.stdenvNoCC.mkDerivation {
+            pname = "mill";
+            inherit version;
+
+            src = pkgs.fetchurl {
+              url = "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist${nativeSuffix}/${version}/mill-dist${nativeSuffix}-${version}.exe";
+              inherit hash;
+            };
+
+            dontUnpack = true;
+            nativeBuildInputs = [ pkgs.makeWrapper ];
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p $out/bin
+
+              cp $src $out/bin/mill
+              chmod +x $out/bin/mill
+
+              wrapProgram $out/bin/mill \
+                --set JAVA_HOME ${jdk} \
+                --prefix PATH : ${jdk}/bin
+
+              runHook postInstall
+            '';
+
+            meta = with pkgs.lib; {
+              description = "Mill build tool ${version} (native)";
+              homepage = "https://mill-build.org/";
+              license = licenses.mit;
+              platforms = platforms.unix;
+              meta.mainProgram = "mill";
+            };
+          };
+
+        mkMillFromFile = filePath: hash:
+          let
+            raw = builtins.readFile filePath;
+            version = pkgs.lib.strings.trim raw;
+          in
+            mkMill { inherit version hash; };
+
+        buildMillProject = {
+            pname,
+            version,
+            src,
+            millPackage,
+            buildInputs,
+            nativeBuildInputs ? [],
+            hash ? pkgs.lib.fakeHash,
+            # Run the assembly to force Coursier and Mill to download all dependencies,
+            # compiler bridges (like Zinc), and plugins. We ignore build failures here
+            # because we only care about populating the cache.
+            fetchCommand ? "mill --no-server assembly",
+            buildPhase ? ''mill --no-server assembly'',
+            installPhase ? ''
+                mkdir -p $out/bin
+                cp out/assembly.dest/out.jar $out/bin/
+            ''
+          }:
+           let
+             deps = pkgs.stdenv.mkDerivation {
+                inherit pname version src buildInputs;
+                #pkgs.cacert is needed for ssl verification for coursier
+                nativeBuildInputs = nativeBuildInputs ++ [millPackage pkgs.cacert];
+                
+                buildPhase = ''
+                  export HOME=$TMPDIR
+                  # Force Java to use our tmpdir instead of /var/empty on macOS
+                  export _JAVA_OPTIONS="-Duser.home=$TMPDIR"
+
+                  
+                  # Force Mill to use JAVA_HOME instead of downloading its own JVM
+                  echo "system" > .mill-jvm-version
+
+                  export COURSIER_CACHE=$TMPDIR/coursier
+                  export COURSIER_ARCHIVE_CACHE=$COURSIER_CACHE/arc
+                  export COURSIER_JVM_CACHE=$COURSIER_CACHE/jvm
+                  export COURSIER_CONFIG_DIR=$COURSIER_CACHE/config
+                  export COURSIER_DATA_DIR=$COURSIER_CACHE/data
+
+                  export XDG_CACHE_HOME=$TMPDIR/mill
+                  ${fetchCommand}
+                  
+                '';
+
+                installPhase = ''
+                  mkdir -p $out
+                  mkdir -p $out/coursier
+                  mkdir -p $out/mill
+                  mkdir -p $out/.ivy2
+                  mkdir -p $COURSIER_CACHE
+                  mkdir -p $XDG_CACHE_HOME
+                  mkdir -p $TMPDIR/.ivy2
+                  cp -a $COURSIER_CACHE/. $out/coursier/
+                  cp -a $XDG_CACHE_HOME/. $out/mill/
+                  cp -a $TMPDIR/.ivy2/. $out/.ivy2/
+                  # Remove Coursier lockfiles and volatile files to ensure the hash is deterministic
+                  find $out \( -name maven-metadata.xml \) -delete
+                  find $out -name "*.log" -delete
+                  find $out -type f -name "*.lock" -delete
+                '';
+                    
+                outputHashMode = "recursive";
+                outputHash = hash;
+             };
+           in pkgs.stdenv.mkDerivation {
+                inherit pname version src buildInputs installPhase;
+                nativeBuildInputs = nativeBuildInputs ++ [millPackage];
+          
+                buildPhase = ''
+                  export HOME=$(mktemp -d)
+                  export _JAVA_OPTIONS="-Duser.home=$HOME"
+              
+                  # Create a writable directory for Coursier. Even in offline mode,
+                  # Coursier attempts to write lockfiles, which fails in the read-only Nix store.
+                  export COURSIER_CACHE=$(mktemp -d)
+                  export XDG_CACHE_HOME=$(mktemp -d)
+
+                  # Force Mill to use JAVA_HOME instead of downloading its own JVM
+                  echo "system" > .mill-jvm-version
+
+                  ls -la ${deps}
+                  
+                  # Copy the pre-downloaded dependencies into our writable cache
+                  cp -a ${deps}/coursier/. $COURSIER_CACHE/
+                  chmod -R u+w $COURSIER_CACHE
+                  # Copy mill dependencies, runners, and etc
+                  cp -a ${deps}/mill/. $XDG_CACHE_HOME/
+                  # it has to be writable due to read/write locks.
+                  chmod -R u+w $XDG_CACHE_HOME
+                  cp -a ${deps}/.ivy2 $HOME/.ivy2/
+              
+                  # Force offline mode so Coursier doesn't attempt network calls
+                  export COURSIER_MODE=offline
+                  # new line at the end of this block is intentional to make passed buildPhase start with new line guaranteed
+
+                '' + buildPhase;
+           };
+      in
+      {
+        lib = {
+          inherit mkMill mkMillFromFile buildMillProject;
+        };
+
+        # Example (update with your version + hash)
+        packages.default = mkMill {
+          version = "1.1.0";
+          hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        };
+      });
+}
