@@ -68,7 +68,7 @@
             version,
             src,
             millPackage,
-            buildInputs,
+            buildInputs ? [],
             nativeBuildInputs ? [],
             hash ? pkgs.lib.fakeHash,
             # Run the assembly to force Coursier and Mill to download all dependencies,
