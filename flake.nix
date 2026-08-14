@@ -37,8 +37,7 @@
 
               mkdir -p $out/bin
 
-              cp $src $out/bin/mill
-              chmod +x $out/bin/mill
+              install -m755 $src $out/bin/mill
 
               wrapProgram $out/bin/mill \
                 --set JAVA_HOME ${jdk} \
