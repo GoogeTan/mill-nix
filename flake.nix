@@ -141,8 +141,8 @@
               
                   # Create a writable directory for Coursier. Even in offline mode,
                   # Coursier attempts to write lockfiles, which fails in the read-only Nix store.
-                  export COURSIER_CACHE=$(mktemp -d)
-                  export XDG_CACHE_HOME=$(mktemp -d)
+                  export COURSIER_CACHE=$NIX_BUILD_TOP/coursier_cache
+                  export XDG_CACHE_HOME=$NIX_BUILD_TOP/xdg_cache_home
 
                   # Force Mill to use JAVA_HOME instead of downloading its own JVM
                   echo "system" > .mill-jvm-version
