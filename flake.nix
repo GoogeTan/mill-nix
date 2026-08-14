@@ -1,5 +1,5 @@
 {
-  description = "Reusable pure Nix flake for Mill 1.x (native builds)";
+  description = "Reusable pure Nix flake for Mill 1.1.x (native builds)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
