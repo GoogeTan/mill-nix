@@ -114,10 +114,10 @@
                   mkdir -p $out/.ivy2
                   mkdir -p $COURSIER_CACHE
                   mkdir -p $XDG_CACHE_HOME
-                  mkdir -p $TMPDIR/.ivy2
+                  mkdir -p $HOME/.ivy2
                   cp -a $COURSIER_CACHE/. $out/coursier/
                   cp -a $XDG_CACHE_HOME/. $out/mill/
-                  cp -a $TMPDIR/.ivy2/. $out/.ivy2/
+                  cp -a $HOME/.ivy2/. $out/.ivy2/
                   # Remove Coursier lockfiles and volatile files to ensure the hash is deterministic
                   find $out \( -name maven-metadata.xml \) -delete
                   find $out -name "*.log" -delete
@@ -135,6 +135,7 @@
           
                 buildPhase = ''
                   export HOME=$NIX_BUILD_TOP/home
+                  mkdir -p $HOME
                   export _JAVA_OPTIONS="-Duser.home=$HOME"
               
                   # Create a writable directory for Coursier. Even in offline mode,
