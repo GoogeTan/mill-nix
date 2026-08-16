@@ -20,7 +20,7 @@
           else throw "Unsupported system: ${system}";
 
         mkMill = { version, hash, jdk ? pkgs.jdk21 }:
-          pkgs.stdenvNoCC.mkDerivation {
+          pkgs.stdenv.mkDerivation {
             pname = "mill";
             inherit version;
 
@@ -30,7 +30,11 @@
             };
 
             dontUnpack = true;
-            nativeBuildInputs = [ pkgs.makeWrapper ];
+            nativeBuildInputs = [ pkgs.makeWrapper ] ++ pkgs.lib.optional pkgs.stdenv.isLinux pkgs.autoPatchelfHook;
+            buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+              pkgs.zlib
+              pkgs.stdenv.cc.cc.lib 
+            ];
 
             installPhase = ''
               runHook preInstall
