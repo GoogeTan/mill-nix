@@ -77,7 +77,7 @@
                     baseName == "build.mill.yaml" ||
                     baseName == "package.mill" ||
                     baseName == "package.mill.yaml" ||
-                    builtins.match ".*/(\\.mill|mill-build)/.*" relPath != null;
+                    builtins.match ".*/(\\.mill|mill-build)/.*" path != null;
               };
 
         buildMillProject = {
@@ -104,6 +104,9 @@
                 nativeBuildInputs = nativeBuildInputs ++ [millPackage pkgs.cacert];
                 
                 buildPhase = ''
+                  echo "DEBUG"
+                  ls ${depsSrc}
+
                   runHook preBuild
                   export HOME=$NIX_BUILD_TOP/home
                   # Force Java to use our tmpdir instead of /var/empty on macOS
