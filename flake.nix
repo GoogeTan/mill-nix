@@ -89,8 +89,8 @@
             buildInputs ? [],
             nativeBuildInputs ? [],
             hash ? pkgs.lib.fakeHash,
-            fetchCommand ? "mill --no-server __.prepareOffline",
-            buildPhase ? ''mill --no-server assembly'',
+            fetchCommand ? "${millPackage}/bin/mill --no-server __.prepareOffline",
+            buildPhase ? ''${millPackage}/bin/mill --no-server assembly'',
             installPhase ? ''
                 mkdir -p $out/bin
                 cp out/assembly.dest/out.jar $out/bin/
