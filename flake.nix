@@ -89,8 +89,6 @@
             buildInputs ? [],
             nativeBuildInputs ? [],
             hash ? pkgs.lib.fakeHash,
-            # Run the assembly to force Coursier and Mill to download all dependencies,
-            # compiler bridges (like Zinc), and plugins. 
             fetchCommand ? "mill --no-server __.prepareOffline",
             buildPhase ? ''mill --no-server assembly'',
             installPhase ? ''
@@ -184,6 +182,34 @@
                   runHook postBuild
                 '';
            };
+
+        buildMillApplication = {
+            pname,
+            binaryName ? pname,
+            version,
+            src,
+            depsSrc ? makeMillConfigsSrc src,
+            millPackage,
+            buildInputs ? [],
+            nativeBuildInputs ? [],
+            hash ? pkgs.lib.fakeHash,
+            fetchCommand ? "mill --no-server __.prepareOffline",
+            buildPhase ? ''mill --no-server assembly'',
+            javaPackage ? pkgs.jre21_minimal
+          }:
+          buildMillProject {
+            inherit pname version src depsSrc millPackage buildInputs nativeBuildInputs hash fetchCommand buildPhase;
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/bin
+              cp out/assembly.dest/out.jar $out/bin/app.jar
+              makeWrapper ${javaPackage}/bin/java $out/bin/${binaryName} \
+                --add-flags "-jar $out/bin/app.jar"
+
+              runHook postInstall
+            '';
+          };
       in
       {
         lib = {

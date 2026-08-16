@@ -116,3 +116,9 @@ and actual project build(isolated and can't use internet).
     cp out/assembly.dest/out.jar $out/bin/
     ```
 - `hash` (String, optional): Hash of all project dependencies. Defaults to `pkgs.lib.fakeHash`. 
+
+### buildMillApplication
+The same as buildMillProject but it generates wrapper script in out directory.
+- `binaryName` (String): A name of resulting binary file
+- `javaPackage` (Package): A package to use `java` command from to run the application.
+- All other params are the same as in `buildMillProject`(except `installPhase` which you can not pass here)
