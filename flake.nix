@@ -26,7 +26,7 @@
 
             src = pkgs.fetchurl {
               url = "https://repo1.maven.org/maven2/com/lihaoyi/mill-dist${nativeSuffix}/${version}/mill-dist${nativeSuffix}-${version}.exe";
-              inherit hash;
+              hash = hash.${system};
             };
 
             dontUnpack = true;

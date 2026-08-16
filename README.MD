@@ -93,13 +93,13 @@ You should replace pkgs.lib.fakeHash with the correct hash string for project to
 ### mkMill
 Creates a package for a specific version of Mill
 - `version` (String): The Mill version to download (e.g., "1.1.0").
-- `hash` (String): The SHA256 hash of the Mill binary.
+- `hash` (String): A map from system to Mill binary hash.
 - `jdk` (Package, optional): The JDK for Mill to use(Mill itself is precompiled with GraalVM but it uses Zinc and scala compiler which require JDK). Defaults to pkgs.jdk21.
 
 ### mkMillFromFile
 The same as mkMill but reads version from provided file:
 - `filePath` (Path): Path to project's .mill-version file.
-- `hash` (String): The SHA256 hash of the Mill binary.
+- `hash` (String): A map from system to Mill binary hash.
 - `jdk` (Package, optional): The JDK for Mill to use(Mill itself is precompiled with GraalVM but it uses Zinc and scala compiler which require JDK). Defaults to pkgs.jdk21.
 
 ### buildMillProject
