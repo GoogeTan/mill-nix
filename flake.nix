@@ -62,10 +62,29 @@
           in
             mkMill { inherit version hash jdk; };
 
+        # Makes a source that consists only of build configs and meta build
+        makeMillConfigsSrc = original:
+            pkgs.lib.cleanSourceWith {
+                src = pkgs.lib.cleanSource original;
+                filter = path: type:
+                  let
+                    baseName = baseNameOf (toString path);
+                  in
+                    type == "directory" ||
+                    baseName == ".mill-version" ||
+                    baseName == "build.sc" ||
+                    pkgs.lib.hasSuffix ".mill" baseName ||
+                    baseName == "build.mill.yaml" ||
+                    baseName == "package.mill" ||
+                    baseName == "package.mill.yaml" ||
+                    builtins.match ".*/(\\.mill|mill-build)/.*" relPath != null;
+              };
+
         buildMillProject = {
             pname,
             version,
             src,
+            depsSrc ? makeMillConfigsSrc src,
             millPackage,
             buildInputs ? [],
             nativeBuildInputs ? [],
@@ -81,7 +100,8 @@
           }:
            let
              deps = pkgs.stdenv.mkDerivation {
-                inherit pname version src buildInputs;
+                inherit pname version buildInputs;
+                src = depsSrc;
                 #pkgs.cacert is needed for ssl verification for coursier
                 nativeBuildInputs = nativeBuildInputs ++ [millPackage pkgs.cacert];
                 

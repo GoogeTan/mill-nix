@@ -107,6 +107,7 @@ A wrapper around `stdenv.mkDerivation` for wrapping mill projects. It uses two-p
 and actual project build(isolated and can't use internet).
 - `pname`, `version`, `src`, `buildInputs`, `nativeBuildInputs`: Standard mkDerivation arguments
 - `millPackage` (Package): The Mill package to use (e.g., generated from mkMill). Must provide a binary named `mill` unless both fetchCommand and buildPhase are overriden to use something else).
+- `depsSrc` (Source set): A set of files needed for dependency resolution. Defaults to all `*.mill`, `build/package.mill.yaml`, `.mill-version`, `build.sc` and meta build files.
 - `fetchCommand` (String, optional): The Mill command used to fetch dependencies. Defaults to "mill --no-server __.prepareOffline"
 - `buildPhase` (String, optional): The Mill command to build the project. Defaults to ''mill --no-server assembly''
 - `installPhase` (String, optional): Script that forms an output application from Mill output. Defaults to:
