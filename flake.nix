@@ -43,9 +43,9 @@
 
               install -m755 $src $out/bin/mill
 
-              wrapProgram $out/bin/mill \
-                --set JAVA_HOME ${jdk} \
-                --prefix PATH : ${jdk}/bin
+              makeWrapper $out/bin/.mill-wrapped $out/bin/mill \
+                --prefix PATH : "${jdk}/bin" \
+                --set-default JAVA_HOME "${jdk}"
 
               runHook postInstall
             '';
@@ -220,7 +220,7 @@
       in
       {
         lib = {
-          inherit mkMill mkMillFromFile buildMillProject;
+          inherit mkMill mkMillFromFile buildMillProject buildMillApplication;
         };
 
         # Example (update with your version + hash)
