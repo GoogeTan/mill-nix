@@ -40,9 +40,8 @@
               runHook preInstall
 
               mkdir -p $out/bin
-
-              install -m755 $src $out/bin/mill
-
+           
+              install -Dm 555 $src $out/bin/.mill-wrapped
               makeWrapper $out/bin/.mill-wrapped $out/bin/mill \
                 --prefix PATH : "${jdk}/bin" \
                 --set-default JAVA_HOME "${jdk}"
